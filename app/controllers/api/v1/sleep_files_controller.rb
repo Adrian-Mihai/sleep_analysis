@@ -12,6 +12,19 @@ module Api
       def create
         sleep_file = user.sleep_files.create!(filtered_params)
         render json: sleep_file, status: :created
+      rescue ActiveRecord::RecordNotFound
+        render json: {}, status: :not_found
+      rescue ActiveRecord::RecordInvalid
+        render json: {}, status: :unprocessable_entity
+      end
+
+      def destroy
+        user.sleep_files.find(params[:id]).destroy!
+        render json: {}, status: :ok
+      rescue ActiveRecord::RecordNotFound
+        render json: {}, status: :not_found
+      rescue ActiveRecord::RecordNotDestroyed
+        render json: {}, status: :unprocessable_entity
       end
 
       private
