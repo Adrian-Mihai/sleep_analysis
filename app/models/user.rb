@@ -6,4 +6,6 @@ class User < ApplicationRecord
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :password, confirmation: true, length: { minimum: 8 }, if: -> { password.present? }
   validates :password_confirmation, presence: true, if: -> { password.present? }
+
+  has_many :sleep_files
 end
