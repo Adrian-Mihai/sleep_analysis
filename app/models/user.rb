@@ -7,5 +7,6 @@ class User < ApplicationRecord
   validates :password, confirmation: true, length: { minimum: 8 }, if: -> { password.present? }
   validates :password_confirmation, presence: true, if: -> { password.present? }
 
-  has_many :sleep_files
+  has_many :sleep_files, dependent: :destroy
+  has_many :sleep_records, dependent: :destroy
 end

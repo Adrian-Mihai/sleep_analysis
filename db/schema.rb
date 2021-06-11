@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_06_06_120214) do
+ActiveRecord::Schema.define(version: 2021_06_06_165738) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -51,6 +51,21 @@ ActiveRecord::Schema.define(version: 2021_06_06_120214) do
     t.index ["user_id"], name: "index_sleep_files_on_user_id"
   end
 
+  create_table "sleep_records", force: :cascade do |t|
+    t.bigint "user_id"
+    t.datetime "went_to_bed", null: false
+    t.datetime "woke_up", null: false
+    t.integer "quality", null: false
+    t.integer "snore", null: false
+    t.integer "time_in_bed", null: false
+    t.integer "movements_in_bed", null: false
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["user_id"], name: "index_sleep_records_on_user_id"
+    t.index ["went_to_bed"], name: "index_sleep_records_on_went_to_bed"
+    t.index ["woke_up"], name: "index_sleep_records_on_woke_up"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "first_name", null: false
     t.string "last_name", null: false
@@ -64,4 +79,5 @@ ActiveRecord::Schema.define(version: 2021_06_06_120214) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "sleep_files", "users"
+  add_foreign_key "sleep_records", "users"
 end
