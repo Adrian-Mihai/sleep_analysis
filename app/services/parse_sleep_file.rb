@@ -16,6 +16,7 @@ class ParseSleepFile
 
     sleep_file.update!(status: SleepFile::PROCESSING)
     parse_attached_file
+    sleep_file.update!(status: SleepFile::PROCESSED)
     self
   rescue ActiveRecord::RecordNotFound
     @errors << 'Record not found'
@@ -66,8 +67,8 @@ class ParseSleepFile
 
   def extract_fields(row)
     {
-      start: row[0],
-      end: row[1],
+      went_to_bed: row[0],
+      woke_up: row[1],
       quality: row[2].to_i,
       movements_in_bed: row[9].to_f.round,
       time_in_bed: row[10].to_f.round,
