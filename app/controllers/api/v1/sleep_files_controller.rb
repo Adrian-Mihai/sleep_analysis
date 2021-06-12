@@ -11,6 +11,7 @@ module Api
 
       def create
         sleep_file = user.sleep_files.create!(filtered_params)
+        DelayedServiceCall.perform_later(ParseSleepFile.to_s, { user_id: user.id, sleep_file_id: sleep_file.id })
         render json: sleep_file, status: :created
       rescue ActiveRecord::RecordNotFound
         render json: {}, status: :not_found
