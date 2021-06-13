@@ -2,27 +2,37 @@ module Analysis
   class CalculateAverageData
     attr_reader :errors, :data
 
-    def initialize(user_id:, start_date:, end_date:)
+    def initialize(user_id:, start_date:, end_date:, day:)
       @user_id = user_id
       @start_date = start_date
       @end_date = end_date
+      @day = day
       @errors = []
     end
 
     def perform
+      valid_day? if @day.present?
+      return self unless valid?
+
       @start_date = DateTime.parse(@start_date) if @start_date.present?
       @end_date = DateTime.parse(@end_date) if @end_date.present?
+
       @count, @quality, @time_in_bed, @movements_in_bed, @snore = extract_data
       @went_to_bed = sleep_records.pluck(:went_to_bed).map(&:seconds_since_midnight).sum
       @woke_up = sleep_records.pluck(:woke_up).map(&:seconds_since_midnight).sum
 
+      if @count.zero?
+        @errors << 'No sleep records'
+        return self
+      end
+
       @data = map_calculated_values
       self
-    rescue ActiveRecord::RecordNotFound
-      @errors << 'Record not found'
+    rescue ActiveRecord::RecordNotFound => e
+      @errors << "#{e.model} not found"
       self
-    rescue Date::Error
-      @errors << 'Invalid date'
+    rescue Date::Error => e
+      @errors << e.message
       self
     end
 
@@ -41,11 +51,10 @@ module Analysis
     def sleep_records
       return @sleep_records if defined? @sleep_records
 
-      @sleep_records = if @start_date.present? && @end_date.present?
-                         user.sleep_records.where(went_to_bed: @start_date..@end_date)
-                       else
-                         user.sleep_records
-                       end
+      @sleep_records = user.sleep_records
+      @sleep_records = @sleep_records.where(went_to_bed: @start_date..@end_date) if date_interval?
+      @sleep_records = user.sleep_records.where(went_to_bed: dates_by_weekday[@day]&.map(&:all_day)) if @day.present?
+      @sleep_records
     end
 
     def extract_data
@@ -90,6 +99,37 @@ module Analysis
 
     def average_snore_time
       @snore / @count.to_f
+    end
+
+    def dates_by_weekday
+      return [] if start_date_interval.nil? || end_date_interval.nil?
+
+      (start_date_interval..end_date_interval).group_by(&:wday)
+    end
+
+    def start_date_interval
+      return @start_date if date_interval?
+
+      user.sleep_records.order(:went_to_bed).first&.went_to_bed&.to_date
+    end
+
+    def end_date_interval
+      return @end_date if date_interval?
+
+      user.sleep_records.order(:went_to_bed).last&.went_to_bed&.to_date
+    end
+
+    def date_interval?
+      @start_date.present? && @end_date.present?
+    end
+
+    def valid_day?
+      @day = Integer(@day)
+      return if @day >= 0 && @day <= 6
+
+      @errors << 'Invalid value for day. Accepted values: [0..6]'
+    rescue ArgumentError
+      @errors << 'Invalid value for day. Accepted values: [0..6]'
     end
   end
 end
