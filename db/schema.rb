@@ -53,17 +53,17 @@ ActiveRecord::Schema.define(version: 2021_06_06_165738) do
 
   create_table "sleep_records", force: :cascade do |t|
     t.bigint "user_id"
-    t.datetime "went_to_bed", null: false
-    t.datetime "woke_up", null: false
-    t.integer "quality", null: false
-    t.integer "snore", null: false
-    t.integer "time_in_bed", null: false
-    t.integer "movements_in_bed", null: false
+    t.date "night", null: false
+    t.float "went_to_bed", null: false
+    t.float "woke_up", null: false
+    t.float "time_in_bed", null: false
+    t.float "movements_per_hour", null: false
+    t.float "snore_time", null: false
+    t.integer "sleep_quality", null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.index ["night"], name: "index_sleep_records_on_night", unique: true
     t.index ["user_id"], name: "index_sleep_records_on_user_id"
-    t.index ["went_to_bed"], name: "index_sleep_records_on_went_to_bed"
-    t.index ["woke_up"], name: "index_sleep_records_on_woke_up"
   end
 
   create_table "users", force: :cascade do |t|

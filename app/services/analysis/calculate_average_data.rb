@@ -14,12 +14,10 @@ module Analysis
       valid_day? if @day.present?
       return self unless valid?
 
-      @start_date = DateTime.parse(@start_date) if @start_date.present?
-      @end_date = DateTime.parse(@end_date) if @end_date.present?
+      @start_date = Date.parse(@start_date) if @start_date.present?
+      @end_date = Date.parse(@end_date) if @end_date.present?
 
-      @count, @quality, @time_in_bed, @movements_in_bed, @snore = extract_data
-      @went_to_bed = sleep_records.pluck(:went_to_bed).map(&:seconds_since_midnight).sum
-      @woke_up = sleep_records.pluck(:woke_up).map(&:seconds_since_midnight).sum
+      @count, @went_to_bed, @woke_up, @sleep_quality, @time_in_bed, @movements_per_hour, @snore_time = extract_data
 
       if @count.zero?
         @errors << 'No sleep records'
@@ -52,17 +50,19 @@ module Analysis
       return @sleep_records if defined? @sleep_records
 
       @sleep_records = user.sleep_records
-      @sleep_records = @sleep_records.where(went_to_bed: @start_date..@end_date) if date_interval?
-      @sleep_records = user.sleep_records.where(went_to_bed: dates_by_weekday[@day]&.map(&:all_day)) if @day.present?
+      @sleep_records = @sleep_records.where(night: @start_date..@end_date) if date_interval?
+      @sleep_records = user.sleep_records.where(night: dates_by_weekday[@day]) if @day.present?
       @sleep_records
     end
 
     def extract_data
       sleep_records.pluck('COUNT(id)',
-                          'SUM(quality)',
+                          'SUM(went_to_bed)',
+                          'SUM(woke_up)',
+                          'SUM(sleep_quality)',
                           'SUM(time_in_bed)',
-                          'SUM(movements_in_bed)',
-                          'SUM(snore)').flatten
+                          'SUM(movements_per_hour)',
+                          'SUM(snore_time)').flatten
     end
 
     def map_calculated_values
@@ -71,7 +71,7 @@ module Analysis
         woke_up: average_woke_up_time,
         sleep_quality: average_sleep_quality,
         time_in_bed: average_time_in_bed,
-        movements_in_bed: average_movements_in_bed,
+        movements_per_hour: average_movements_per_hour,
         snore_time: average_snore_time,
         recorded_nights: @count
       }
@@ -86,19 +86,19 @@ module Analysis
     end
 
     def average_sleep_quality
-      @quality / @count.to_f
+      @sleep_quality / @count.to_f
     end
 
     def average_time_in_bed
       @time_in_bed / @count.to_f
     end
 
-    def average_movements_in_bed
-      @movements_in_bed / @count.to_f
+    def average_movements_per_hour
+      @movements_per_hour / @count.to_f
     end
 
     def average_snore_time
-      @snore / @count.to_f
+      @snore_time / @count.to_f
     end
 
     def dates_by_weekday
@@ -110,13 +110,13 @@ module Analysis
     def start_date_interval
       return @start_date if date_interval?
 
-      user.sleep_records.order(:went_to_bed).first&.went_to_bed&.to_date
+      user.sleep_records.order(:night).first&.night
     end
 
     def end_date_interval
       return @end_date if date_interval?
 
-      user.sleep_records.order(:went_to_bed).last&.went_to_bed&.to_date
+      user.sleep_records.order(:night).last&.night
     end
 
     def date_interval?
