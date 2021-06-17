@@ -3,7 +3,7 @@ module Api
     module SleepAnalysis
       class AverageSerializer < ActiveModel::Serializer
         attributes :went_to_bed, :woke_up, :sleep_quality,
-                   :time_in_bed, :movements_in_bed, :snore_time, :recorded_nights
+                   :time_in_bed, :movements_per_hour, :snore_time, :recorded_nights
 
         def went_to_bed
           Time.at(object.went_to_bed).utc.strftime('%H:%M:%S')
@@ -21,8 +21,8 @@ module Api
           Time.at(object.time_in_bed).utc.strftime('%H:%M:%S')
         end
 
-        def movements_in_bed
-          object.movements_in_bed.round
+        def movements_per_hour
+          object.movements_per_hour.round
         end
 
         def snore_time

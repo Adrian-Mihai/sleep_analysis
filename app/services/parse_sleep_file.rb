@@ -37,7 +37,7 @@ class ParseSleepFile
     rows[1..].each do |row|
       next unless valid_row?(row)
 
-      SleepRecord.create!(extract_fields(row).merge(user: user))
+      user.sleep_records.create!(extract_fields(row))
     rescue ActiveRecord::RecordInvalid
       next
     end
@@ -67,13 +67,36 @@ class ParseSleepFile
 
   def extract_fields(row)
     {
-      went_to_bed: row[0],
-      woke_up: row[1],
-      quality: row[2].to_i,
-      movements_in_bed: row[9].to_f.round,
-      time_in_bed: row[10].to_f.round,
-      snore: row[14].to_f.round
+      night: extract_night(row[0], row[1]),
+      went_to_bed: convert_to_seconds(row[0]),
+      woke_up: convert_to_seconds(row[1]),
+      sleep_quality: row[2].to_i,
+      movements_per_hour: row[9].to_f,
+      time_in_bed: row[10].to_f,
+      snore_time: row[14].to_f
     }
+  end
+
+  def extract_night(went_to_bed, woke_up)
+    return if went_to_bed.nil? || woke_up.nil?
+
+    went_to_bed_date = Date.parse(went_to_bed)
+    woke_up_date = Date.parse(woke_up)
+    return nil if went_to_bed_date > woke_up_date
+    return nil if (woke_up_date - went_to_bed_date).to_i > 1
+    return went_to_bed_date - 1.day if went_to_bed_date == woke_up_date
+
+    went_to_bed_date
+  rescue Date::Error
+    nil
+  end
+
+  def convert_to_seconds(date)
+    return if date.nil?
+
+    Time.parse(date).seconds_since_midnight
+  rescue TypeError, ArgumentError
+    nil
   end
 
   def user
