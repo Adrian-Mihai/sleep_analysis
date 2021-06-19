@@ -1,12 +1,10 @@
 require 'csv'
 
-class ParseSleepFile
-  attr_reader :errors
-
+class ParseSleepFile < Base
   def initialize(user_id:, sleep_file_id:)
+    super()
     @user_id = user_id
     @sleep_file_id = sleep_file_id
-    @errors = []
   end
 
   def perform
@@ -18,16 +16,12 @@ class ParseSleepFile
     parse_attached_file
     sleep_file.update!(status: SleepFile::PROCESSED)
     self
-  rescue ActiveRecord::RecordNotFound
-    @errors << 'Record not found'
+  rescue ActiveRecord::RecordNotFound => e
+    @errors << "#{e.model} not found"
     self
-  rescue ActiveRecord::RecordInvalid
-    @errors << 'Record is invalid'
+  rescue ActiveRecord::RecordInvalid => e
+    @errors += e.record.errors.full_messages
     self
-  end
-
-  def valid?
-    @errors.empty?
   end
 
   private
@@ -97,12 +91,6 @@ class ParseSleepFile
     Time.parse(date).seconds_since_midnight
   rescue TypeError, ArgumentError
     nil
-  end
-
-  def user
-    return @user if defined? @user
-
-    @user = User.find(@user_id)
   end
 
   def sleep_file

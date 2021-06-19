@@ -1,13 +1,13 @@
 module Analysis
-  class CalculateAverageData
-    attr_reader :errors, :data
+  class CalculateAverageData < Analysis::Base
+    attr_reader :data
 
     def initialize(user_id:, start_date:, end_date:, day:)
+      super()
       @user_id = user_id
       @start_date = start_date
       @end_date = end_date
       @day = day
-      @errors = []
     end
 
     def perform
@@ -33,17 +33,7 @@ module Analysis
       self
     end
 
-    def valid?
-      @errors.empty?
-    end
-
     private
-
-    def user
-      return @user if defined? @user
-
-      @user = User.find(@user_id)
-    end
 
     def sleep_records
       return @sleep_records if defined? @sleep_records
