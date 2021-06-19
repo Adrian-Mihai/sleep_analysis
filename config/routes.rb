@@ -7,6 +7,7 @@ Rails.application.routes.draw do
 
         namespace :sleep_analysis do
           resources :averages, only: :index
+          resources :statistics, only: :index
         end
       end
     end
