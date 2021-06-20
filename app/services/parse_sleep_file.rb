@@ -1,23 +1,24 @@
 require 'csv'
 
 class ParseSleepFile < Base
+  include UserHelpers
+
   def initialize(user_id:, sleep_file_id:)
     super()
-    @user_id = user_id
-    @sleep_file_id = sleep_file_id
+    @user = find_user(user_id)
+    @sleep_file = @user.sleep_files.find(sleep_file_id)
+  rescue ActiveRecord::RecordNotFound => e
+    @errors << "#{e.model} not found"
   end
 
   def perform
+    return self unless valid?
+
     validate_sleep_file_status
     validate_attached_file
     return self unless valid?
 
-    sleep_file.update!(status: SleepFile::PROCESSING)
     parse_attached_file
-    sleep_file.update!(status: SleepFile::PROCESSED)
-    self
-  rescue ActiveRecord::RecordNotFound => e
-    @errors << "#{e.model} not found"
     self
   rescue ActiveRecord::RecordInvalid => e
     @errors += e.record.errors.full_messages
@@ -27,14 +28,16 @@ class ParseSleepFile < Base
   private
 
   def parse_attached_file
+    @sleep_file.update!(status: SleepFile::PROCESSING)
     rows = read_csv_file
     rows[1..].each do |row|
       next unless valid_row?(row)
 
-      user.sleep_records.create!(extract_fields(row))
+      @user.sleep_records.create!(extract_fields(row))
     rescue ActiveRecord::RecordInvalid
       next
     end
+    @sleep_file.update!(status: SleepFile::PROCESSED)
   end
 
   def valid_row?(row)
@@ -44,19 +47,19 @@ class ParseSleepFile < Base
   end
 
   def validate_sleep_file_status
-    return if sleep_file.uploaded?
+    return if @sleep_file.uploaded?
 
     @errors << 'File invalid status'
   end
 
   def validate_attached_file
-    return if sleep_file.file.attached?
+    return if @sleep_file.file.attached?
 
     @errors << 'No file attached'
   end
 
   def read_csv_file
-    CSV.parse(sleep_file.file.download, col_sep: ';')
+    CSV.parse(@sleep_file.file.download, col_sep: ';')
   end
 
   def extract_fields(row)
@@ -91,11 +94,5 @@ class ParseSleepFile < Base
     Time.parse(date).seconds_since_midnight
   rescue TypeError, ArgumentError
     nil
-  end
-
-  def sleep_file
-    return @sleep_file if defined? @sleep_file
-
-    @sleep_file = user.sleep_files.find(@sleep_file_id)
   end
 end

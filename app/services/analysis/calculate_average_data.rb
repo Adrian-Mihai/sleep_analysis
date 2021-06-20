@@ -1,44 +1,28 @@
 module Analysis
   class CalculateAverageData < Analysis::Base
-    attr_reader :data
-
     def initialize(user_id:, start_date:, end_date:, day:)
-      super()
-      @user_id = user_id
-      @start_date = start_date
-      @end_date = end_date
-      @day = day
-    end
-
-    def perform
-      valid_day? if @day.present?
-      return self unless valid?
-
-      @start_date = @start_date.present? ? Date.parse(@start_date) : first_recorded_night
-      @end_date = @end_date.present? ? Date.parse(@end_date) : last_recorded_night
-
-      if @start_date.nil? || @end_date.nil?
-        @errors << 'No sleep records'
-        return self
-      end
-
-      @count, @went_to_bed, @woke_up, @sleep_quality, @time_in_bed, @movements_per_hour, @snore_time = extract_data
-      @data = map_calculated_values
-      self
-    rescue ActiveRecord::RecordNotFound => e
-      @errors << "#{e.model} not found"
-      self
-    rescue Date::Error => e
-      @errors << e.message
-      self
+      super(user_id: user_id, start_date: start_date, end_date: end_date)
+      @day = Integer(day) if day.present?
+    rescue ArgumentError
+      @errors << 'Invalid value for day. Accepted values: [0..6]'
     end
 
     private
 
-    def sleep_records
-      return @sleep_records if defined? @sleep_records
+    def call
+      return unless valid?
 
-      @sleep_records = user.sleep_records.where(night: @start_date..@end_date)
+      if @day.present?
+        validate_day
+        return unless valid?
+      end
+
+      @count, @went_to_bed, @woke_up, @sleep_quality, @time_in_bed, @movements_per_hour, @snore_time = extract_data
+      @data = map_calculated_values
+    end
+
+    def sleep_records
+      super
       @sleep_records = @sleep_records.where(night: dates_by_weekday[@day]) if @day.present?
       @sleep_records
     end
@@ -93,20 +77,9 @@ module Analysis
       (@start_date..@end_date).group_by(&:wday)
     end
 
-    def first_recorded_night
-      user.sleep_records.order(:night).first&.night
-    end
-
-    def last_recorded_night
-      user.sleep_records.order(:night).last&.night
-    end
-
-    def valid_day?
-      @day = Integer(@day)
+    def validate_day
       return if @day >= 0 && @day <= 6
 
-      @errors << 'Invalid value for day. Accepted values: [0..6]'
-    rescue ArgumentError
       @errors << 'Invalid value for day. Accepted values: [0..6]'
     end
   end

@@ -16,4 +16,10 @@ class SleepRecord < ApplicationRecord
   validates_with SleepDurationValidator
 
   belongs_to :user
+
+  class << self
+    def allowed_axis
+      column_names - %w[id user_id created_at updated_at]
+    end
+  end
 end
