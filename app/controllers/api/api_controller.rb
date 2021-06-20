@@ -4,14 +4,6 @@ module Api
     rescue_from ServiceError, with: :service_invalid_error
     rescue_from ActiveRecord::RecordInvalid, with: :record_invalid_error
 
-    protected
-
-    def user
-      return @user if defined? @user
-
-      @user = User.find(params[:user_id] || params[:id])
-    end
-
     private
 
     def record_not_found_error(error)
