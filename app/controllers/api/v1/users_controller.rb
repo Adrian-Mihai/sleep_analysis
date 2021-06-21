@@ -1,7 +1,8 @@
 module Api
   module V1
-    class UsersController < Api::ApiController
-      before_action :find_user, only: %i[show update]
+    class UsersController < Api::V1::AuthenticationController
+      before_action :check_user_rights, except: :create
+      skip_before_action :authenticate_with_token, only: :create
 
       def show
         render json: @user, status: :ok
@@ -24,8 +25,8 @@ module Api
         params.require(:user).permit(:first_name, :last_name, :email, :password, :password_confirmation)
       end
 
-      def find_user
-        @user = User.find(params[:id])
+      def same_id?
+        @user.id == params[:id].to_i
       end
     end
   end

@@ -18,7 +18,7 @@ module Analysis
     def perform
       return self unless valid?
 
-      validate_date_interval
+      check_recorded_nights
       return self unless valid?
 
       call
@@ -32,7 +32,11 @@ module Analysis
     end
 
     def sleep_records
-      @sleep_records ||= @user.sleep_records.where(night: @start_date..@end_date)
+      @sleep_records ||= @user.sleep_records.where(night: interval)
+    end
+
+    def interval
+      @start_date..@end_date
     end
 
     def first_recorded_night
@@ -43,15 +47,11 @@ module Analysis
       @last_recorded_night ||= @user.sleep_records.last&.night
     end
 
-    def validate_date_interval
-      return @errors << 'No nights recorded' if @start_date.nil? || @end_date.nil?
-      return if valid_interval?
+    def check_recorded_nights
+      return @errors << 'No recorded nights' if first_recorded_night.nil? || last_recorded_night.nil?
+      return if sleep_records.exists?
 
-      @errors << "start date and end date must be in [#{first_recorded_night}..#{last_recorded_night}]"
-    end
-
-    def valid_interval?
-      (first_recorded_night..last_recorded_night).include?(@start_date..@end_date)
+      @errors << 'No recorded nights'
     end
   end
 end

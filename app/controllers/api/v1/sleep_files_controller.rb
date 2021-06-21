@@ -1,7 +1,7 @@
 module Api
   module V1
-    class SleepFilesController < Api::ApiController
-      before_action :find_user
+    class SleepFilesController < Api::V1::AuthenticationController
+      before_action :check_user_rights
       before_action :check_extension, only: :create
 
       def index
@@ -25,10 +25,6 @@ module Api
 
       def filtered_params
         params.require(:sleep_file).permit(:file)
-      end
-
-      def find_user
-        @user = User.find(params[:user_id])
       end
 
       def check_extension
