@@ -12,7 +12,7 @@ module Analysis
       validate_axis
       return unless valid?
 
-      @data = sleep_records.order(:night).pluck(@x_axis, @y_axis).to_h
+      @data = sleep_records.order(@x_axis).pluck(@x_axis, @y_axis).to_h
     end
 
     def validate_axis

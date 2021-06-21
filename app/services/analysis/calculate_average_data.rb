@@ -21,10 +21,8 @@ module Analysis
       @data = map_calculated_values
     end
 
-    def sleep_records
-      super
-      @sleep_records = @sleep_records.where(night: dates_by_weekday[@day]) if @day.present?
-      @sleep_records
+    def interval
+      @day.present? ? dates_by_weekday[@day] : super
     end
 
     def extract_data
